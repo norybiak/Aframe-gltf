@@ -1215,7 +1215,7 @@ THREE.GLTFLoader = ( function () {
 
 				} else {
 
-					materialType = THREE.MeshBasicMaterial;
+					materialType = THREE.MeshPhongMaterial;
 
 					Object.assign( materialValues, material.values );
 					
