@@ -1,6 +1,5 @@
 THREE.FileLoader = THREE.FileLoader || THREE.XHRLoader;
 
-
 /**
  * glTF model system.
  */
