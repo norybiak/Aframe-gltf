@@ -1,3 +1,9 @@
+/**
+ *  glTF component and primitive compatibility for aframe 0.3.0.
+ * 
+ */
+ 
+//Lets allow older version of Three.js to work with the latest GLTFLoader.
 THREE.FileLoader = THREE.FileLoader || THREE.XHRLoader;
 
 /**
@@ -66,6 +72,10 @@ AFRAME.registerComponent('gltf-model', {
   }
 });
 
+/**
+ * glTF model primitive.
+ */
+ 
 AFRAME.registerPrimitive('a-gltf-model', {
   mappings: {
     src: 'gltf-model'
