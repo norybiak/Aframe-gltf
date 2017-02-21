@@ -12,7 +12,7 @@ gLTF loader component and primitive compatible with a-frame 0.3.0
     <script src="https://aframe.io/releases/0.3.0/aframe.min.js"></script>
     <script src="https://cdn.rawgit.com/AltspaceVR/aframe-altspace-component/v1.4.0/dist/aframe-altspace-component.min.js"></script>
 
-    <script src="https://cdn.rawgit.com/norybiak/Aframe-gltf/v0.1.0/dist/aframe-gltf.js"></script>
+    <script src="https://cdn.rawgit.com/norybiak/Aframe-gltf/v0.1.1/dist/aframe-gltf.js"></script>
   </head>
   <body>
 
