@@ -1,5 +1,6 @@
 THREE.FileLoader = THREE.FileLoader || THREE.XHRLoader;
 
+
 /**
  * glTF model system.
  */
@@ -653,9 +654,9 @@ THREE.GLTFLoader = ( function () {
 
 						value.then( function( key, value ) {
 
-							results[ idx ] = value;
+							results[ key ] = value;
 
-						}.bind( this, key ));
+						}.bind( this, idx ));
 
 					} else {
 
@@ -717,8 +718,8 @@ THREE.GLTFLoader = ( function () {
 		if ( typeof url !== 'string' || url === '' )
 			return '';
 
-		// Absolute URL
-		if ( /^https?:\/\//i.test( url ) ) {
+		// Absolute URL http://,https://,//
+		if ( /^(https?:)?\/\//i.test( url ) ) {
 
 			return url;
 
@@ -1293,7 +1294,12 @@ THREE.GLTFLoader = ( function () {
 					Object.assign( materialValues, material.values );
 
 				} else {
+					
+					materialType = THREE.MeshPhongMaterial;
 
+					Object.assign( materialValues, material.values );
+					
+					/*
 					materialType = DeferredShaderMaterial;
 
 					var technique = json.techniques[ material.technique ];
@@ -1565,6 +1571,8 @@ THREE.GLTFLoader = ( function () {
 						}
 
 					}
+					
+					*/
 
 				}
 
@@ -2097,7 +2105,6 @@ THREE.GLTFLoader = ( function () {
 
 									var geometry = originalGeometry;
 									var material = originalMaterial;
-									material.skinning = true;
 
 									child = new THREE.SkinnedMesh( geometry, material, false );
 									child.castShadow = true;
