@@ -46,6 +46,7 @@ AFRAME.registerComponent('gltf-model', {
   init: function () {
     this.model = null;
     this.loader = new THREE.GLTFLoader();
+	this.loader.setCrossOrigin('anonymous');
   },
 
   update: function () {
