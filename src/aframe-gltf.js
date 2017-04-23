@@ -1,6 +1,8 @@
 /**
  *  glTF component and primitive compatibility for aframe 0.3.0.
- * 
+ *   
+ * NorybiaK
+ * v0.2.0
  */
  
 //Lets allow older version of Three.js to work with the latest GLTFLoader.

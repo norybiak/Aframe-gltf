@@ -135,15 +135,6 @@ THREE.GLTFLoader = ( function () {
 
 			update: function ( scene, camera ) {
 
-				// update scene graph
-
-				scene.updateMatrixWorld();
-
-				// update camera matrices and frustum
-
-				camera.updateMatrixWorld();
-				camera.matrixWorldInverse.getInverse( camera.matrixWorld );
-
 				for ( var name in objects ) {
 
 					var object = objects[ name ];
@@ -164,7 +155,15 @@ THREE.GLTFLoader = ( function () {
 
 	/* GLTFSHADERS */
 
-	GLTFLoader.Shaders = new GLTFRegistry();
+	GLTFLoader.Shaders = {
+
+		update: function () {
+
+			console.warn( 'THREE.GLTFLoader.Shaders has been deprecated, and now updates automatically.' );
+
+		}
+
+	};
 
 	/* GLTFSHADER */
 
@@ -658,8 +657,8 @@ THREE.GLTFLoader = ( function () {
 
 		}
 
-		// Relative URL
-		return ( path || '' ) + url;
+		var absoluteUrl = new URL(( path || '' ) + url, location.href.substring(0, location.href.lastIndexOf('/') + 1));
+		return absoluteUrl.toString();
 
 	}
 
@@ -883,8 +882,6 @@ THREE.GLTFLoader = ( function () {
 
 		] ).then( function ( dependencies ) {
 
-			var scene = dependencies.scenes[ json.scene ];
-
 			var scenes = [];
 
 			for ( var name in dependencies.scenes ) {
@@ -892,6 +889,8 @@ THREE.GLTFLoader = ( function () {
 				scenes.push( dependencies.scenes[ name ] );
 
 			}
+
+			var scene = json.scene !== undefined ? dependencies.scenes[ json.scene ] : scenes[ 0 ];
 
 			var cameras = [];
 
@@ -1088,53 +1087,70 @@ THREE.GLTFLoader = ( function () {
 
 						}
 
-						var textureLoader = THREE.Loader.Handlers.get( sourceUri );
+						if ( altspace && altspace.inClient ) {
+							
+							// Defer Texture Image Loading To Native Altspace Client
+							texture = new THREE.Texture( { src: resolveURL( sourceUri, options.path ) } );
+											
+							handleTexture(texture);
 
-						if ( textureLoader === null ) {
+							resolve( texture );
+							
+						} else {
+							
+							var textureLoader = THREE.Loader.Handlers.get( sourceUri );
 
-							textureLoader = new THREE.TextureLoader();
+							if ( textureLoader === null ) {
+
+								textureLoader = new THREE.TextureLoader();
+
+							}
+
+							textureLoader.setCrossOrigin( options.crossOrigin );
+
+							textureLoader.load( resolveURL( sourceUri, options.path ), function ( _texture ) {
+
+								handleTexture(_texture);
+
+								resolve( _texture );
+
+							}, undefined, function () {
+
+								resolve();
+
+							} );
+							
+						}
+						
+					} );
+					
+					function handleTexture(_texture)
+					{
+						_texture.flipY = false;
+
+						if ( texture.name !== undefined ) _texture.name = texture.name;
+
+						_texture.format = texture.format !== undefined ? WEBGL_TEXTURE_FORMATS[ texture.format ] : THREE.RGBAFormat;
+
+						if ( texture.internalFormat !== undefined && _texture.format !== WEBGL_TEXTURE_FORMATS[ texture.internalFormat ] ) {
+
+							console.warn( 'THREE.GLTFLoader: Three.js doesn\'t support texture internalFormat which is different from texture format. ' +
+														'internalFormat will be forced to be the same value as format.' );
 
 						}
 
-						textureLoader.setCrossOrigin( options.crossOrigin );
+						_texture.type = texture.type !== undefined ? WEBGL_TEXTURE_DATATYPES[ texture.type ] : THREE.UnsignedByteType;
 
-						textureLoader.load( resolveURL( sourceUri, options.path ), function ( _texture ) {
+						if ( texture.sampler ) {
 
-							_texture.flipY = false;
+							var sampler = json.samplers[ texture.sampler ];
 
-							if ( texture.name !== undefined ) _texture.name = texture.name;
-
-							_texture.format = texture.format !== undefined ? WEBGL_TEXTURE_FORMATS[ texture.format ] : THREE.RGBAFormat;
-
-							if ( texture.internalFormat !== undefined && _texture.format !== WEBGL_TEXTURE_FORMATS[ texture.internalFormat ] ) {
-
-								console.warn( 'THREE.GLTFLoader: Three.js doesn\'t support texture internalFormat which is different from texture format. ' +
-								              'internalFormat will be forced to be the same value as format.' );
-
-							}
-
-							_texture.type = texture.type !== undefined ? WEBGL_TEXTURE_DATATYPES[ texture.type ] : THREE.UnsignedByteType;
-
-							if ( texture.sampler ) {
-
-								var sampler = json.samplers[ texture.sampler ];
-
-								_texture.magFilter = WEBGL_FILTERS[ sampler.magFilter ] || THREE.LinearFilter;
-								_texture.minFilter = WEBGL_FILTERS[ sampler.minFilter ] || THREE.NearestMipMapLinearFilter;
-								_texture.wrapS = WEBGL_WRAPPINGS[ sampler.wrapS ] || THREE.RepeatWrapping;
-								_texture.wrapT = WEBGL_WRAPPINGS[ sampler.wrapT ] || THREE.RepeatWrapping;
-
-							}
-
-							resolve( _texture );
-
-						}, undefined, function () {
-
-							resolve();
-
-						} );
-
-					} );
+							_texture.magFilter = WEBGL_FILTERS[ sampler.magFilter ] || THREE.LinearFilter;
+							_texture.minFilter = WEBGL_FILTERS[ sampler.minFilter ] || THREE.NearestMipMapLinearFilter;
+							_texture.wrapS = WEBGL_WRAPPINGS[ sampler.wrapS ] || THREE.RepeatWrapping;
+							_texture.wrapT = WEBGL_WRAPPINGS[ sampler.wrapT ] || THREE.RepeatWrapping;
+						}
+					}
 
 				}
 
@@ -1214,11 +1230,10 @@ THREE.GLTFLoader = ( function () {
 					}
 
 				} else {
-
+					
 					materialType = THREE.MeshPhongMaterial;
 
 					Object.assign( materialValues, material.values );
-					
 				}
 
 				if ( Array.isArray( materialValues.diffuse ) ) {
@@ -1311,7 +1326,7 @@ THREE.GLTFLoader = ( function () {
 
 			return _each( json.meshes, function ( mesh ) {
 
-				var group = new THREE.Object3D();
+				var group = new THREE.Group();
 				if ( mesh.name !== undefined ) group.name = mesh.name;
 
 				if ( mesh.extras ) group.userData = mesh.extras;
@@ -1350,6 +1365,10 @@ THREE.GLTFLoader = ( function () {
 								case 'TEXCOORD0':
 								case 'TEXCOORD':
 									geometry.addAttribute( 'uv', bufferAttribute );
+									break;
+
+								case 'TEXCOORD_1':
+									geometry.addAttribute( 'uv2', bufferAttribute );
 									break;
 
 								case 'COLOR_0':
@@ -1750,6 +1769,7 @@ THREE.GLTFLoader = ( function () {
 
 									var geometry = originalGeometry;
 									var material = originalMaterial;
+									material.skinning = true;
 
 									child = new THREE.SkinnedMesh( geometry, material, false );
 									child.castShadow = true;
@@ -1901,8 +1921,10 @@ THREE.GLTFLoader = ( function () {
 					// Register raw material meshes with GLTFLoader.Shaders
 					if ( child.material && child.material.isRawShaderMaterial ) {
 
-						var xshader = new GLTFShader( child, dependencies.nodes );
-						GLTFLoader.Shaders.add( child.uuid, xshader );
+						child.gltfShader = new GLTFShader( child, dependencies.nodes );
+						child.onBeforeRender = function(renderer, scene, camera){
+							this.gltfShader.update(scene, camera);
+						};
 
 					}
 
